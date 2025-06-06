@@ -10,6 +10,17 @@ REPO_ROOT = os.path.dirname(HERE)
 
 PROMPT = "Echo the following HTTP path and query exactly:\n{path}"
 LOGS = []
+_SERVER_THREAD = None
+
+
+def _start_example_server():
+    """(Re)start the background example server."""
+    global _SERVER_THREAD
+    if _SERVER_THREAD is not None:
+        _SERVER_THREAD.stop()
+        _SERVER_THREAD.join()
+    _SERVER_THREAD = _ExampleServerThread()
+    _SERVER_THREAD.start()
 
 
 def gather_examples():
@@ -77,14 +88,22 @@ class StudioHandler(SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
+        global PROMPT, LOGS
         parsed = urlparse(self.path)
         if parsed.path == "/api/prompt":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             data = json.loads(body or b"{}")
-            global PROMPT
             PROMPT = data.get("prompt", PROMPT)
             self._send_json({"status": "ok"})
+        elif parsed.path == "/api/restart":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            data = json.loads(body or b"{}")
+            PROMPT = data.get("prompt", PROMPT)
+            LOGS = []
+            _start_example_server()
+            self._send_json({"status": "restarted"})
         elif parsed.path == "/api/run_tests":
             result = subprocess.run([
                 "python",
@@ -99,15 +118,16 @@ class StudioHandler(SimpleHTTPRequestHandler):
 
 
 def run(host="localhost", port=8500):
-    example = _ExampleServerThread()
-    example.start()
+    _start_example_server()
     server = HTTPServer((host, port), StudioHandler)
     print(f"VibeStudio running on http://{host}:{port}")
     try:
         server.serve_forever()
     finally:
-        example.stop()
+        if _SERVER_THREAD is not None:
+            _SERVER_THREAD.stop()
 
 
 if __name__ == "__main__":
     run()
+

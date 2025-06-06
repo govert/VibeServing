@@ -42,6 +42,19 @@ async function savePrompt() {
   });
 }
 
+async function restartServer() {
+  const prompt = document.getElementById('prompt').value;
+  await fetch('/api/restart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  });
+  document.getElementById('traffic').textContent = '';
+  const iframe = document.getElementById('browser');
+  iframe.src = 'http://localhost:8000/';
+  loadLogs();
+}
+
 async function loadLogs() {
   const resp = await fetch('/api/logs');
   const logs = await resp.json();
@@ -61,6 +74,7 @@ window.addEventListener('load', () => {
   loadPrompt();
   loadLogs();
   document.getElementById('save-prompt').addEventListener('click', savePrompt);
+  document.getElementById('restart-server').addEventListener('click', restartServer);
   document.getElementById('run-tests').addEventListener('click', runTests);
   setInterval(loadLogs, 2000);
 });
