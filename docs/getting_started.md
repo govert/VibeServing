@@ -24,4 +24,12 @@ python -m unittest examples.test_simple_server
 ```
 See [example_service.md](example_service.md) for more details on the design and tests.
 
-VibeStudio will provide a graphical view of prompts and traffic once the server is integrated.
+5. Launch VibeStudio in a second terminal:
+   ```bash
+   python -m vibestudio.studio
+   ```
+   Then open http://localhost:8500 in your browser. The dashboard lists the
+   examples and shows how to run their tests.
+
+VibeStudio currently surfaces example information only; later versions will also
+display live traffic and prompts from a running VibeServer.

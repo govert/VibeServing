@@ -23,10 +23,11 @@ and providing a step‑by‑step roadmap to a working implementation.
 ## Roadmap
 
 1. **Static prototype**
-   - Create a basic Flask (or Node) server that serves a static page with
-     placeholder panels.
+   - Create a small Python server that serves a static page with placeholder
+     panels. The implementation lives in `vibestudio/studio.py`.
    - Mock data for requests, responses, and tests so the layout can be
-     exercised.
+     exercised. The server also exposes `/api/examples` which lists runnable
+     examples from the repository.
 2. **Live traffic and prompt editing**
    - Connect to the toy VibeServer from `examples/` and display incoming
      requests and outgoing responses in real time.
