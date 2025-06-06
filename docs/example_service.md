@@ -11,9 +11,7 @@ The initial service demonstrates how a VibeServer can forward requests to a lang
 This simple interaction exercises the wiring between the HTTP wrapper and the LLM API.
 
 ## Development notes
-
-The `simple_server.py` example now includes a `call_llm` helper that uses the OpenAI API. Set the `OPENAI_API_KEY` environment variable before starting the server. Errors from the API are returned to the client so failures are visible during development.
-
+The `simple_server.py` example includes a `call_llm` helper that relies on the OpenAI package. Install dependencies from `requirements.txt` and set the `OPENAI_API_KEY` variable as shown in [getting_started.md](getting_started.md) before starting the server. Errors from the API are returned to the client so failures are visible during development.
 ## Testing tooling
 
 * Python's `unittest` module drives a small integration test in `examples/test_simple_server.py`.
