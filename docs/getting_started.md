@@ -15,12 +15,12 @@ These instructions describe a minimal local setup. They do not require installin
    $Env:OPENAI_API_KEY="<your-key>"   # PowerShell
    set OPENAI_API_KEY=<your-key>      # cmd.exe
    ```
-4. Run the toy VibeServer:
+4. (Optional) run the standalone example VibeServer:
    ```bash
    python examples/simple_server.py
    ```
 
-The example server now forwards each request to an LLM. Run the automated test to verify the behavior without hitting the API:
+The example server forwards each request to an LLM. Run the automated test to verify the behavior without hitting the API:
 ```bash
 python -m unittest examples.test_simple_server
 ```
@@ -30,6 +30,7 @@ See [example_service.md](example_service.md) for more details on the design and 
    ```bash
    python -m vibestudio.studio
    ```
-   Then open http://localhost:8500 in your browser. The dashboard now starts a
-   toy VibeServer, shows its prompt, logs traffic, and lets you run the
-   automated tests from the Tester panel.
+   Then open http://localhost:8500 in your browser. The dashboard launches a
+   proxy server that uses the Service and Meta prompts to contact the LLM
+   directly. Request logs appear in real time and you can run the automated
+   tests from the Tester panel.

@@ -5,6 +5,11 @@ import subprocess
 from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse
 
+try:
+    import openai
+except ImportError:  # pragma: no cover - optional for tests
+    openai = None
+
 HERE = os.path.dirname(__file__)
 REPO_ROOT = os.path.dirname(HERE)
 
@@ -21,7 +26,16 @@ def _load_file(path: str, default: str) -> str:
         return fh.read()
 
 PROMPT = _load_file(PROMPT_FILE, DEFAULT_PROMPT)
-META_PROMPT = _load_file(META_PROMPT_FILE, "You are a VibeServer controller.")
+META_PROMPT = _load_file(
+    META_PROMPT_FILE,
+    (
+        "You are a VibeServer controller. Each incoming message contains an HTTP "
+        "request. Combine this meta prompt with the service prompt to determine "
+        "the correct response. Always return a full HTTP reply: status line, "
+        "headers, a blank line, then the body. Begin the reply with this meta "
+        "prompt wrapped in triple braces on its own line."
+    ),
+)
 LOGS = []
 _SERVER_THREAD = None
 
@@ -61,19 +75,41 @@ def gather_examples():
 class ExampleHandler(BaseHTTPRequestHandler):
     """Minimal HTTP handler used by the dashboard."""
 
+    def call_llm(self, prompt_text: str) -> str:
+        """Send ``prompt_text`` to the LLM and return the result."""
+        if openai is None:
+            raise RuntimeError("openai package is required for LLM calls")
+
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError("OPENAI_API_KEY environment variable not set")
+
+        openai.api_key = api_key
+        try:  # pragma: no cover - network dependent
+            if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
+                response = openai.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt_text}],
+                )
+                return response.choices[0].message.content.strip()
+            else:
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt_text}],
+                )
+                return response.choices[0].message["content"].strip()
+        except Exception as exc:
+            return f"LLM call failed: {exc}"
+
     def do_GET(self):
         global PROMPT, META_PROMPT
-        text = PROMPT.format(path=self.path)
-        full = text
-        if META_PROMPT:
-            # Include the meta prompt using triple braces so the response
-            # matches the documented format.
-            full = f"{{{{{META_PROMPT}}}}}\n{text}"
-        LOGS.append({"request": self.path, "response": full})
+        prompt_text = f"{META_PROMPT}\n{PROMPT.format(path=self.path)}"
+        response_text = self.call_llm(prompt_text)
+        LOGS.append({"request": self.path, "response": response_text})
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(full.encode("utf-8"))
+        self.wfile.write(response_text.encode("utf-8"))
 
 
 class _ExampleServerThread(threading.Thread):
