@@ -1,6 +1,6 @@
-# Dashboard / Mission Control Specification
+# VibeStudio / Mission Control Specification
 
-The dashboard provides a unified interface for interacting with a VibeServer during development.
+VibeStudio provides a unified interface for interacting with a VibeServer during development.
 
 ## Key features
 
@@ -11,6 +11,6 @@ The dashboard provides a unified interface for interacting with a VibeServer dur
 
 ## Implementation notes
 
-* The dashboard should run locally with minimal setup—ideally a simple Python or JavaScript server.
+* VibeStudio should run locally with minimal setup—ideally a simple Python or JavaScript server.
 * Panels can be arranged using a lightweight web framework (for example, a single-page app served by Flask or Node/Express).
 * Initial versions may rely on mock data; integration with the actual VibeServer and VibeTester will come later.

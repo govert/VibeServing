@@ -12,4 +12,6 @@ These instructions describe a minimal local setup. They do not require installin
    python examples/simple_server.py
    ```
 
-The example server simply echoes requests using an LLM call (not yet implemented). Future updates will include a full example and a test harness.
+The example server simply echoes requests using an LLM call (not yet implemented). See [example_service.md](example_service.md) for details on the planned behavior and test tooling.
+
+VibeStudio will provide a graphical view of prompts and traffic once the server is integrated.
