@@ -36,11 +36,20 @@ class Handler(BaseHTTPRequestHandler):
         prompt = f"Echo the following HTTP path and query exactly:\n{path}"
 
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            text = response.choices[0].message["content"].strip()
+            if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
+                # openai>=1.0
+                response = openai.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                text = response.choices[0].message.content.strip()
+            else:
+                # openai<1.0
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                text = response.choices[0].message["content"].strip()
             return text
         except Exception as exc:  # pragma: no cover - depends on network
             return f"LLM call failed: {exc}"
