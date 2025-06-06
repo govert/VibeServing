@@ -9,6 +9,14 @@ async function loadExamples() {
     const title = document.createElement('h2');
     title.textContent = ex.name;
     div.appendChild(title);
+    if (ex.prompt) {
+      const btn = document.createElement('button');
+      btn.textContent = 'Use Prompt';
+      btn.addEventListener('click', () => {
+        document.getElementById('prompt').value = ex.prompt;
+      });
+      div.appendChild(btn);
+    }
     const runLabel = document.createElement('div');
     runLabel.textContent = 'Run the example:';
     div.appendChild(runLabel);
@@ -33,6 +41,12 @@ async function loadPrompt() {
   document.getElementById('prompt').value = data.prompt;
 }
 
+async function loadMetaPrompt() {
+  const resp = await fetch('/api/meta_prompt');
+  const data = await resp.json();
+  document.getElementById('meta-prompt').value = data.meta_prompt;
+}
+
 async function savePrompt() {
   const prompt = document.getElementById('prompt').value;
   await fetch('/api/prompt', {
@@ -42,12 +56,22 @@ async function savePrompt() {
   });
 }
 
+async function saveMetaPrompt() {
+  const meta_prompt = document.getElementById('meta-prompt').value;
+  await fetch('/api/meta_prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ meta_prompt }),
+  });
+}
+
 async function restartServer() {
   const prompt = document.getElementById('prompt').value;
+  const meta_prompt = document.getElementById('meta-prompt').value;
   await fetch('/api/restart', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, meta_prompt }),
   });
   document.getElementById('traffic').textContent = '';
   const iframe = document.getElementById('browser');
@@ -72,8 +96,10 @@ async function runTests() {
 window.addEventListener('load', () => {
   loadExamples();
   loadPrompt();
+  loadMetaPrompt();
   loadLogs();
   document.getElementById('save-prompt').addEventListener('click', savePrompt);
+  document.getElementById('save-meta').addEventListener('click', saveMetaPrompt);
   document.getElementById('restart-server').addEventListener('click', restartServer);
   document.getElementById('run-tests').addEventListener('click', runTests);
   setInterval(loadLogs, 2000);
