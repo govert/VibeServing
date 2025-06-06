@@ -6,3 +6,4 @@ The approach draws inspiration from "vibe coding" (leaning on large language mod
 
 See the [docs](docs/) directory for the project overview, roadmap, policies, and research notes.
 The [example service](docs/example_service.md) describes the first minimal VibeServer implementation.
+The new [VibeStudio design overview](docs/vibestudio_design.md) explains the dashboard architecture and lists the steps toward a working release.
