@@ -20,8 +20,9 @@ VibeStudio provides a unified interface for interacting with a VibeServer during
   as a VibeServer. After restart the dashboard issues an HTTP `GET /` request
   and logs both the request and the model's HTTP response. The response body is
   rendered in the Browser panel and further interactions continue through the
-  same proxy channel. The simple example server bundled with the dashboard also
-  echoes the meta prompt at the top of each response to mimic this behaviour.
+  same proxy channel. The dashboard's built-in server proxies these requests
+  to the LLM using the Service and Meta prompts. The `examples/simple_server.py`
+  script demonstrates the same behaviour in a standalone form.
 
 * These hidden instructions are delimited with triple braces on their own
   lines (e.g. `{{{ meta }}}`) so the server can return meta responses in the
