@@ -22,6 +22,7 @@ VibeStudio provides a unified interface for interacting with a VibeServer during
   rendered in the Browser panel and further interactions continue through the
   same proxy channel. The simple example server bundled with the dashboard also
   echoes the meta prompt at the top of each response to mimic this behaviour.
+
 * These hidden instructions are delimited with triple braces on their own
   lines (e.g. `{{{ meta }}}`) so the server can return meta responses in the
   same form.

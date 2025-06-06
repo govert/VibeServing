@@ -38,6 +38,7 @@ requests and responses. Future versions may also forward out‑of‑band
 messages such as notifications. Only HTTP is supported today, but
 additional protocols can be added later.
 
+
 ## Roadmap
 
 1. **Static prototype**
