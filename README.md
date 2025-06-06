@@ -6,3 +6,4 @@ The approach draws inspiration from "vibe coding" (leaning on large language mod
 
 See the [docs](docs/) directory for the project overview, roadmap, policies, and research notes.
 The [example service](docs/example_service.md) describes the first minimal VibeServer implementation.
+See [docs/getting_started.md](docs/getting_started.md) for setup instructions to run the example service.

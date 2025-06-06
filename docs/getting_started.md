@@ -3,13 +3,15 @@
 These instructions describe a minimal local setup. They do not require installing heavy dependencies, but assume you have Python 3 installed.
 
 1. Clone this repository.
-2. Install dependencies (placeholder):
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 3. Set your OpenAI API key so the example can contact the model:
    ```bash
-   export OPENAI_API_KEY="<your-key>"
+   export OPENAI_API_KEY="<your-key>"  # Linux/macOS
+   $Env:OPENAI_API_KEY="<your-key>"   # PowerShell
+   set OPENAI_API_KEY=<your-key>      # cmd.exe
    ```
 4. Run the toy VibeServer:
    ```bash
