@@ -88,19 +88,18 @@ class StudioHandler(SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
+        global PROMPT, LOGS
         parsed = urlparse(self.path)
         if parsed.path == "/api/prompt":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             data = json.loads(body or b"{}")
-            global PROMPT
             PROMPT = data.get("prompt", PROMPT)
             self._send_json({"status": "ok"})
         elif parsed.path == "/api/restart":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             data = json.loads(body or b"{}")
-            global PROMPT, LOGS
             PROMPT = data.get("prompt", PROMPT)
             LOGS = []
             _start_example_server()
