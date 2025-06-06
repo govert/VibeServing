@@ -27,4 +27,40 @@ async function loadExamples() {
   });
 }
 
-window.addEventListener('load', loadExamples);
+async function loadPrompt() {
+  const resp = await fetch('/api/prompt');
+  const data = await resp.json();
+  document.getElementById('prompt').value = data.prompt;
+}
+
+async function savePrompt() {
+  const prompt = document.getElementById('prompt').value;
+  await fetch('/api/prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  });
+}
+
+async function loadLogs() {
+  const resp = await fetch('/api/logs');
+  const logs = await resp.json();
+  const pre = document.getElementById('traffic');
+  pre.textContent = logs.map(l => `${l.request} -> ${l.response}`).join('\n');
+}
+
+async function runTests() {
+  document.getElementById('test-output').textContent = 'Running...';
+  const resp = await fetch('/api/run_tests', { method: 'POST' });
+  const data = await resp.json();
+  document.getElementById('test-output').textContent = data.output;
+}
+
+window.addEventListener('load', () => {
+  loadExamples();
+  loadPrompt();
+  loadLogs();
+  document.getElementById('save-prompt').addEventListener('click', savePrompt);
+  document.getElementById('run-tests').addEventListener('click', runTests);
+  setInterval(loadLogs, 2000);
+});
