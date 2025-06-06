@@ -43,3 +43,10 @@ and providing a step‑by‑step roadmap to a working implementation.
 
 This staged approach keeps the initial implementation small while making
 it easy to expand VibeStudio alongside the rest of the project.
+
+## Current status
+
+The implementation in this repository now covers stages 1–3. Running
+`python -m vibestudio.studio` starts the dashboard along with a toy
+VibeServer so you can edit the prompt, watch live traffic, and execute
+the unit tests from the Tester panel.
