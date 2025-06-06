@@ -7,4 +7,4 @@ The approach draws inspiration from "vibe coding" (leaning on large language mod
 See the [docs](docs/) directory for the project overview, roadmap, policies, and research notes.
 See [docs/getting_started.md](docs/getting_started.md) for setup instructions to run the example service.
 The [example service](docs/example_service.md) describes the first minimal VibeServer implementation.
-The new [VibeStudio design overview](docs/vibestudio_design.md) explains the dashboard architecture and lists the steps toward a working release.
+The new [VibeStudio design overview](docs/vibestudio_design.md) explains the dashboard architecture and lists the steps toward a working release. An initial implementation lives under `vibestudio/` and can be started with `python -m vibestudio.studio`.
