@@ -8,7 +8,20 @@ from urllib.parse import urlparse
 HERE = os.path.dirname(__file__)
 REPO_ROOT = os.path.dirname(HERE)
 
-PROMPT = "Echo the following HTTP path and query exactly:\n{path}"
+PROMPT_FILE = os.path.join(HERE, "prompt.txt")
+META_PROMPT_FILE = os.path.join(HERE, "meta_prompt.txt")
+
+DEFAULT_PROMPT = "Echo the following HTTP path and query exactly:\n{path}"
+
+def _load_file(path: str, default: str) -> str:
+    if not os.path.exists(path):
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(default)
+    with open(path, "r", encoding="utf-8") as fh:
+        return fh.read()
+
+PROMPT = _load_file(PROMPT_FILE, DEFAULT_PROMPT)
+META_PROMPT = _load_file(META_PROMPT_FILE, "You are a VibeServer controller.")
 LOGS = []
 _SERVER_THREAD = None
 
@@ -32,23 +45,35 @@ def gather_examples():
             name = os.path.splitext(filename)[0]
             run_cmd = f"python examples/{filename}"
             test_file = os.path.join(examples_dir, f"test_{filename}")
+            prompt_file = os.path.join(examples_dir, f"{name}_prompt.txt")
             test_cmd = None
+            prompt = None
             if os.path.exists(test_file):
                 test_mod = os.path.splitext(os.path.basename(test_file))[0]
                 test_cmd = f"python -m unittest examples.{test_mod}"
-            items.append({"name": name, "run": run_cmd, "test": test_cmd})
+            if os.path.exists(prompt_file):
+                with open(prompt_file, "r", encoding="utf-8") as fh:
+                    prompt = fh.read()
+            items.append({"name": name, "run": run_cmd, "test": test_cmd, "prompt": prompt})
     return items
 
 
 class ExampleHandler(BaseHTTPRequestHandler):
+    """Minimal HTTP handler used by the dashboard."""
+
     def do_GET(self):
-        global PROMPT
+        global PROMPT, META_PROMPT
         text = PROMPT.format(path=self.path)
-        LOGS.append({"request": self.path, "response": text})
+        full = text
+        if META_PROMPT:
+            # Include the meta prompt using triple braces so the response
+            # matches the documented format.
+            full = f"{{{{{META_PROMPT}}}}}\n{text}"
+        LOGS.append({"request": self.path, "response": full})
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(text.encode("utf-8"))
+        self.wfile.write(full.encode("utf-8"))
 
 
 class _ExampleServerThread(threading.Thread):
@@ -82,25 +107,38 @@ class StudioHandler(SimpleHTTPRequestHandler):
             self._send_json(gather_examples())
         elif parsed.path == "/api/prompt":
             self._send_json({"prompt": PROMPT})
+        elif parsed.path == "/api/meta_prompt":
+            self._send_json({"meta_prompt": META_PROMPT})
         elif parsed.path == "/api/logs":
             self._send_json(LOGS)
         else:
             super().do_GET()
 
     def do_POST(self):
-        global PROMPT, LOGS
+        global PROMPT, META_PROMPT, LOGS
         parsed = urlparse(self.path)
         if parsed.path == "/api/prompt":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             data = json.loads(body or b"{}")
             PROMPT = data.get("prompt", PROMPT)
+            with open(PROMPT_FILE, "w", encoding="utf-8") as fh:
+                fh.write(PROMPT)
+            self._send_json({"status": "ok"})
+        elif parsed.path == "/api/meta_prompt":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            data = json.loads(body or b"{}")
+            META_PROMPT = data.get("meta_prompt", META_PROMPT)
+            with open(META_PROMPT_FILE, "w", encoding="utf-8") as fh:
+                fh.write(META_PROMPT)
             self._send_json({"status": "ok"})
         elif parsed.path == "/api/restart":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             data = json.loads(body or b"{}")
             PROMPT = data.get("prompt", PROMPT)
+            META_PROMPT = data.get("meta_prompt", META_PROMPT)
             LOGS = []
             _start_example_server()
             self._send_json({"status": "restarted"})

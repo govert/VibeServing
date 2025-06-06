@@ -10,8 +10,8 @@ and providing a step‑by‑step roadmap to a working implementation.
 ## Architecture
 
 * **Server** – a lightweight Python or JavaScript backend serves static
-  assets and exposes endpoints for log data, prompt updates, and test
-  commands. Early versions can reuse the example Flask server from this
+  assets and exposes endpoints for log data, prompt updates, meta prompt
+  storage, and test commands. Early versions can reuse the example Flask server from this
   repository.
 * **Frontend** – a small single‑page application (HTML/JS) renders the
   panels described in the spec. Communication with the backend happens
@@ -22,18 +22,22 @@ and providing a step‑by‑step roadmap to a working implementation.
 
 ## Interaction flow
 
-Restarting the server from the Prompt panel begins a fresh conversation
-with the LLM. The text entered by the developer is combined with hidden
-instructions telling the model to behave as a VibeServer. These meta
+Restarting the server from the Prompt panels begins a fresh conversation
+with the LLM. The **Service Prompt** entered by the developer is combined
+with the persistent **Meta Prompt** (loaded from `vibestudio/meta_prompt.txt`)
+and hidden instructions telling the model to behave as a VibeServer. These meta
 messages are surrounded by triple braces on their own lines, for example
-`{{{ system prompt }}}`, to clearly separate them from ordinary HTTP
-content. VibeStudio then sends an HTTP `GET /` request over that
-conversation and shows the raw request in the Traffic panel. The model
-replies with an HTTP response, which is logged and rendered in the
-Browser panel. All subsequent user actions are proxied as HTTP requests
-and responses. Future versions may also forward out‑of‑band messages
-such as notifications. Only HTTP is supported today, but additional
-protocols can be added later.
+`{{{ system prompt }}}`, to clearly separate them from ordinary HTTP content.
+VibeStudio then sends an HTTP `GET /` request over that conversation and
+shows the raw request in the Traffic panel. The model replies with an
+HTTP response, which is logged and rendered in the Browser panel. To
+mirror the real VibeServer behaviour, the bundled example server includes
+the meta prompt at the top of each response, wrapped in triple braces
+(`{{{ meta }}}`). All subsequent user actions are proxied as HTTP
+requests and responses. Future versions may also forward out‑of‑band
+messages such as notifications. Only HTTP is supported today, but
+additional protocols can be added later.
+
 
 ## Roadmap
 
