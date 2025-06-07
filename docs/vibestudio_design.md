@@ -30,8 +30,10 @@ messages are surrounded by triple braces on their own lines, for example
 `{{{ system prompt }}}`, to clearly separate them from ordinary HTTP content.
 VibeStudio then sends an HTTP `GET /` request over that conversation and
 shows the raw request in the Traffic panel. The model replies with an
-HTTP response, which is logged and rendered in the Browser panel. To
-mirror the real VibeServer behaviour, the bundled example server includes
+HTTP response, which is logged and rendered in the Browser panel. Meta
+messages returned by the model are captured separately so they can be
+displayed in a **Meta Chat** panel for debugging. To mirror the real
+VibeServer behaviour, the bundled example server includes
 the meta prompt at the top of each response, wrapped in triple braces
 (`{{{ meta }}}`). All subsequent user actions are proxied as HTTP
 requests and responses. Future versions may also forward out‑of‑band

@@ -27,6 +27,7 @@ class ExampleHandlerTest(unittest.TestCase):
         )
         self.patcher.start()
         studio.LOGS = []
+        studio.META_LOGS = []
         self.thread = _ServerThread()
         self.thread.start()
 
@@ -44,6 +45,38 @@ class ExampleHandlerTest(unittest.TestCase):
         self.assertIn("REPLY", body)
         self.assertTrue(studio.LOGS)
         self.assertEqual(studio.LOGS[-1]["request"], path)
+        self.assertEqual(studio.LOGS[-1]["status"], 200)
+        self.assertTrue(studio.META_LOGS)  # meta prompt logged
+
+
+class ExampleHandlerErrorTest(unittest.TestCase):
+    def setUp(self):
+        self.patcher = mock.patch.object(
+            studio.ExampleHandler,
+            "call_llm",
+            side_effect=RuntimeError("missing key"),
+        )
+        self.patcher.start()
+        studio.LOGS = []
+        studio.META_LOGS = []
+        self.thread = _ServerThread()
+        self.thread.start()
+
+    def tearDown(self):
+        self.thread.stop()
+        self.thread.join()
+        self.patcher.stop()
+
+    def test_error_logging(self):
+        conn = HTTPConnection("localhost", 8002)
+        path = "/fail"
+        conn.request("GET", path)
+        resp = conn.getresponse()
+        body = resp.read().decode()
+        self.assertEqual(resp.status, 500)
+        self.assertIn("missing key", body)
+        self.assertTrue(studio.LOGS)
+        self.assertTrue(studio.LOGS[-1]["error"])
 
 
 if __name__ == "__main__":

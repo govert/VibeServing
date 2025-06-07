@@ -37,6 +37,7 @@ META_PROMPT = _load_file(
     ),
 )
 LOGS = []
+META_LOGS = []
 _SERVER_THREAD = None
 
 
@@ -102,14 +103,27 @@ class ExampleHandler(BaseHTTPRequestHandler):
             return f"LLM call failed: {exc}"
 
     def do_GET(self):
-        global PROMPT, META_PROMPT
+        global PROMPT, META_PROMPT, LOGS, META_LOGS
         prompt_text = f"{META_PROMPT}\n{PROMPT.format(path=self.path)}"
-        response_text = self.call_llm(prompt_text)
-        LOGS.append({"request": self.path, "response": response_text})
-        self.send_response(200)
+        META_LOGS.append({"direction": "out", "text": META_PROMPT})
+        status = 200
+        try:
+            response_text = self.call_llm(prompt_text)
+        except Exception as exc:  # pragma: no cover - dependent on environment
+            status = 500
+            response_text = f"LLM error: {exc}"
+        lines = response_text.splitlines()
+        meta_lines = []
+        while lines and lines[0].startswith("{{{") and lines[0].endswith("}}}"):
+            meta_lines.append(lines.pop(0)[3:-3].strip())
+        for m in meta_lines:
+            META_LOGS.append({"direction": "in", "text": m})
+        body_text = "\n".join(lines)
+        LOGS.append({"request": self.path, "status": status, "response": body_text, "error": status != 200})
+        self.send_response(status)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(response_text.encode("utf-8"))
+        self.wfile.write(body_text.encode("utf-8"))
 
 
 class _ExampleServerThread(threading.Thread):
@@ -147,11 +161,13 @@ class StudioHandler(SimpleHTTPRequestHandler):
             self._send_json({"meta_prompt": META_PROMPT})
         elif parsed.path == "/api/logs":
             self._send_json(LOGS)
+        elif parsed.path == "/api/meta_logs":
+            self._send_json(META_LOGS)
         else:
             super().do_GET()
 
     def do_POST(self):
-        global PROMPT, META_PROMPT, LOGS
+        global PROMPT, META_PROMPT, LOGS, META_LOGS
         parsed = urlparse(self.path)
         if parsed.path == "/api/prompt":
             length = int(self.headers.get("Content-Length", 0))
@@ -176,6 +192,7 @@ class StudioHandler(SimpleHTTPRequestHandler):
             PROMPT = data.get("prompt", PROMPT)
             META_PROMPT = data.get("meta_prompt", META_PROMPT)
             LOGS = []
+            META_LOGS = []
             _start_example_server()
             self._send_json({"status": "restarted"})
         elif parsed.path == "/api/run_tests":
