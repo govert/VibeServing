@@ -113,15 +113,25 @@ class ExampleHandler(BaseHTTPRequestHandler):
             status = 500
             response_text = f"LLM error: {exc}"
         lines = response_text.splitlines()
+        # Trim leading blank lines so slightly malformed responses still parse
+        while lines and not lines[0].strip():
+            lines.pop(0)
+
         meta_lines = []
-        while lines and lines[0].startswith("{{{") and lines[0].endswith("}}}"):
-            meta_lines.append(lines.pop(0)[3:-3].strip())
+        while (
+            lines
+            and lines[0].lstrip().startswith("{{{")
+            and lines[0].rstrip().endswith("}}}")
+        ):
+            meta_lines.append(lines.pop(0).strip()[3:-3].strip())
+        while lines and not lines[0].strip():
+            lines.pop(0)
         for m in meta_lines:
             META_LOGS.append({"direction": "in", "text": m})
 
         headers = {}
-        if lines and lines[0].startswith("HTTP/"):
-            status_line = lines.pop(0)
+        if lines and lines[0].lstrip().startswith("HTTP/"):
+            status_line = lines.pop(0).strip()
             parts = status_line.split()
             if len(parts) >= 2 and parts[1].isdigit():
                 status = int(parts[1])

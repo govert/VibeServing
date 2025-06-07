@@ -24,9 +24,9 @@ class ExampleHandlerTest(unittest.TestCase):
             studio.ExampleHandler,
             "call_llm",
             lambda self, text: (
-                "{{{ meta }}}\n"
-                "HTTP/1.1 200 OK\n"
-                "Content-Type: text/html\n"
+                "   {{{ meta }}}\n"
+                "  HTTP/1.1 200 OK\n"
+                "  Content-Type: text/html\n"
                 "\n"
                 "<html>REPLY</html>"
             ),
