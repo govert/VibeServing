@@ -54,11 +54,15 @@ async function restartServer() {
   document.getElementById('traffic').textContent = '';
   logIndex = 0;
   const iframe = document.getElementById('browser');
-  iframe.src = 'http://localhost:8000/';
+  const url = 'http://localhost:8000/';
+  iframe.src = url;
+  document.getElementById('browser-url').value = url;
+  browserHistory = [];
   loadLogs();
 }
 
 let logIndex = 0;
+let browserHistory = [];
 
 async function loadLogs() {
   const resp = await fetch('/api/logs');
@@ -98,6 +102,25 @@ async function runTests() {
   document.getElementById('test-output').textContent = data.output;
 }
 
+function navigateBrowser() {
+  const input = document.getElementById('browser-url');
+  const url = input.value.trim();
+  if (!url) return;
+  const iframe = document.getElementById('browser');
+  if (iframe.src) {
+    browserHistory.push(iframe.src);
+  }
+  iframe.src = url;
+}
+
+function backBrowser() {
+  if (browserHistory.length === 0) return;
+  const url = browserHistory.pop();
+  const iframe = document.getElementById('browser');
+  iframe.src = url;
+  document.getElementById('browser-url').value = url;
+}
+
 window.addEventListener('load', () => {
   loadExamples();
   loadPrompt();
@@ -112,6 +135,13 @@ window.addEventListener('load', () => {
   document.getElementById('prompt-chooser').addEventListener('change', (e) => {
     if (e.target.value) {
       document.getElementById('prompt').value = e.target.value;
+    }
+  });
+  document.getElementById('browser-go').addEventListener('click', navigateBrowser);
+  document.getElementById('browser-back').addEventListener('click', backBrowser);
+  document.getElementById('browser-url').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      navigateBrowser();
     }
   });
   setInterval(loadLogs, 2000);
