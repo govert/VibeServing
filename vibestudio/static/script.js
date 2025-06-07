@@ -2,7 +2,9 @@ async function loadExamples() {
   const resp = await fetch('/api/examples');
   const examples = await resp.json();
   const container = document.getElementById('examples');
+  const chooser = document.getElementById('prompt-chooser');
   container.innerHTML = '';
+  chooser.innerHTML = '<option value="">Select example...</option>';
   examples.forEach((ex) => {
     const div = document.createElement('div');
     div.className = 'example';
@@ -16,6 +18,11 @@ async function loadExamples() {
         document.getElementById('prompt').value = ex.prompt;
       });
       div.appendChild(btn);
+
+      const opt = document.createElement('option');
+      opt.value = ex.prompt;
+      opt.textContent = ex.name;
+      chooser.appendChild(opt);
     }
     const runLabel = document.createElement('div');
     runLabel.textContent = 'Run the example:';
@@ -102,5 +109,10 @@ window.addEventListener('load', () => {
   document.getElementById('save-meta').addEventListener('click', saveMetaPrompt);
   document.getElementById('restart-server').addEventListener('click', restartServer);
   document.getElementById('run-tests').addEventListener('click', runTests);
+  document.getElementById('prompt-chooser').addEventListener('change', (e) => {
+    if (e.target.value) {
+      document.getElementById('prompt').value = e.target.value;
+    }
+  });
   setInterval(loadLogs, 2000);
 });

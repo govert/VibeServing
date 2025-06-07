@@ -1,3 +1,9 @@
+# VibeStudio Interactions
+
+This document describes how to use the dashboard controls. The Service Prompt panel features a dropdown labelled `prompt-chooser` populated from `/api/examples`. Selecting an example fills the Service Prompt textarea with that example's prompt, making it easy to try different setups.
+
+Other panels continue to function as outlined in `vibestudio_design.md`: you can edit prompts, restart the server, view traffic, and run tests from the Tester panel.
+
 # VibeStudio Interaction Scenarios
 
 This page illustrates several request flows through VibeStudio. The diagrams use mermaid syntax and
@@ -73,7 +79,7 @@ Hello world
 
 The line wrapped in triple braces is the meta prompt returned verbatim so the
 client can parse it separately from the rest of the body.
-=======
+
 # VibeStudio Message Flow
 
 This document expands on the existing design notes by walking through how a developer interacts with a VibeServer via VibeStudio. It combines a text-based UI mockup with message trace diagrams showing the flow between the browser, the local VibeStudio backend, and the remote LLM acting as the VibeServer.
@@ -161,5 +167,4 @@ A simplified text representation of the dashboard:
 ## Summary
 
 VibeStudio orchestrates a short feedback loop between prompt editing, server restart, and live interaction. The backend threads together the service prompt, meta prompt, and user HTTP requests before calling the LLM. Responses are logged and displayed so the developer can iterate quickly on the behaviour of the VibeServer.
-
 
