@@ -69,6 +69,11 @@ The implementation in this repository now covers stages 1–3. Running
 `python -m vibestudio.studio` starts the dashboard along with a small
 server that proxies HTTP requests to the LLM using the active prompts.
 You can edit prompts, watch traffic, and execute the unit tests from the
+
+
 Tester panel. A dropdown next to the Service Prompt lets you quickly load
-example prompts from the repository. The `examples/simple_server.py`
-script remains as a minimal standalone demonstration of the same behaviour.
+example prompts from the repository. The `examples/simple_server.py` script remains as a minimal
+standalone demonstration of the same behaviour.
+See [testing_strategy.md](testing_strategy.md) for more on the automated tests
+and suggested manual checks.
+
