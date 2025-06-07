@@ -1,51 +1,22 @@
+async function loadPrompt() {
+  const resp = await fetch('/api/prompt');
+  const data = await resp.json();
+  document.getElementById('prompt').value = data.prompt;
+}
+
 async function loadExamples() {
   const resp = await fetch('/api/examples');
   const examples = await resp.json();
-  const container = document.getElementById('examples');
   const chooser = document.getElementById('prompt-chooser');
-  container.innerHTML = '';
   chooser.innerHTML = '<option value="">Select example...</option>';
   examples.forEach((ex) => {
-    const div = document.createElement('div');
-    div.className = 'example';
-    const title = document.createElement('h2');
-    title.textContent = ex.name;
-    div.appendChild(title);
     if (ex.prompt) {
-      const btn = document.createElement('button');
-      btn.textContent = 'Use Prompt';
-      btn.addEventListener('click', () => {
-        document.getElementById('prompt').value = ex.prompt;
-      });
-      div.appendChild(btn);
-
       const opt = document.createElement('option');
       opt.value = ex.prompt;
       opt.textContent = ex.name;
       chooser.appendChild(opt);
     }
-    const runLabel = document.createElement('div');
-    runLabel.textContent = 'Run the example:';
-    div.appendChild(runLabel);
-    const run = document.createElement('pre');
-    run.textContent = ex.run;
-    div.appendChild(run);
-    if (ex.test) {
-      const testLabel = document.createElement('div');
-      testLabel.textContent = 'Run the tests:';
-      div.appendChild(testLabel);
-      const test = document.createElement('pre');
-      test.textContent = ex.test;
-      div.appendChild(test);
-    }
-    container.appendChild(div);
   });
-}
-
-async function loadPrompt() {
-  const resp = await fetch('/api/prompt');
-  const data = await resp.json();
-  document.getElementById('prompt').value = data.prompt;
 }
 
 async function loadMetaPrompt() {
@@ -81,16 +52,23 @@ async function restartServer() {
     body: JSON.stringify({ prompt, meta_prompt }),
   });
   document.getElementById('traffic').textContent = '';
+  logIndex = 0;
   const iframe = document.getElementById('browser');
   iframe.src = 'http://localhost:8000/';
   loadLogs();
 }
 
+let logIndex = 0;
+
 async function loadLogs() {
   const resp = await fetch('/api/logs');
   const logs = await resp.json();
   const pre = document.getElementById('traffic');
-  pre.textContent = logs.map(l => `${l.status} ${l.request} -> ${l.response}`).join('\n');
+  for (let i = logIndex; i < logs.length; i++) {
+    const l = logs[i];
+    pre.textContent += `${l.status} ${l.request} -> ${l.response}\n`;
+  }
+  logIndex = logs.length;
 }
 
 async function loadMetaChat() {
@@ -98,6 +76,19 @@ async function loadMetaChat() {
   const logs = await resp.json();
   const pre = document.getElementById('meta-chat');
   pre.textContent = logs.map(l => (l.direction === 'out' ? '>> ' : '<< ') + l.text).join('\n');
+}
+
+async function sendMeta() {
+  const input = document.getElementById('meta-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  await fetch('/api/meta_chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  loadMetaChat();
 }
 
 async function runTests() {
@@ -117,6 +108,7 @@ window.addEventListener('load', () => {
   document.getElementById('save-meta').addEventListener('click', saveMetaPrompt);
   document.getElementById('restart-server').addEventListener('click', restartServer);
   document.getElementById('run-tests').addEventListener('click', runTests);
+  document.getElementById('send-meta').addEventListener('click', sendMeta);
   document.getElementById('prompt-chooser').addEventListener('change', (e) => {
     if (e.target.value) {
       document.getElementById('prompt').value = e.target.value;

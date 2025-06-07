@@ -224,6 +224,15 @@ class StudioHandler(SimpleHTTPRequestHandler):
             META_LOGS = []
             _start_example_server()
             self._send_json({"status": "restarted"})
+        elif parsed.path == "/api/meta_chat":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            data = json.loads(body or b"{}")
+            text = data.get("text", "")
+            META_LOGS.append({"direction": "out", "text": text})
+            response = ExampleHandler.call_llm(ExampleHandler, text)
+            META_LOGS.append({"direction": "in", "text": response})
+            self._send_json({"response": response})
         elif parsed.path == "/api/run_tests":
             result = subprocess.run([
                 "python",
