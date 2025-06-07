@@ -34,7 +34,8 @@ HTTP response, which is logged and rendered in the Browser panel. The
 panel now includes a small address bar and Back button so you can
 navigate to specific URLs and return to previous pages. Meta messages
 returned by the model are captured separately so they can be
-displayed in a **Meta Chat** panel for debugging. To mirror the real
+displayed in a **Meta Chat** panel for debugging and also appear in the
+Traffic panel so every exchange with the LLM is visible. To mirror the real
 VibeServer behaviour, the bundled example server includes
 the meta prompt at the top of each response, wrapped in triple braces
 (`{{{ meta }}}`). All subsequent user actions are proxied as HTTP

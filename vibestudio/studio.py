@@ -119,7 +119,13 @@ class ExampleHandler(BaseHTTPRequestHandler):
 
         prompt_body = PROMPT.format(path=self.path, request=request_text)
         prompt_text = f"{META_PROMPT}\n{prompt_body}\n{request_text}"
+
+        # Log outgoing meta and service prompts
         META_LOGS.append({"direction": "out", "text": META_PROMPT})
+        LOGS.append({"type": "meta_out", "text": META_PROMPT})
+
+        META_LOGS.append({"direction": "out", "text": prompt_body})
+        LOGS.append({"type": "meta_out", "text": prompt_body})
         status = 200
         try:
             response_text = self.call_llm(prompt_text)
@@ -132,6 +138,7 @@ class ExampleHandler(BaseHTTPRequestHandler):
             lines.pop(0)
 
         meta_lines = []
+        suffix_meta_lines = []
         while (
             lines
             and lines[0].lstrip().startswith("{{{")
@@ -140,8 +147,6 @@ class ExampleHandler(BaseHTTPRequestHandler):
             meta_lines.append(lines.pop(0).strip()[3:-3].strip())
         while lines and not lines[0].strip():
             lines.pop(0)
-        for m in meta_lines:
-            META_LOGS.append({"direction": "in", "text": m})
 
         headers = {}
         if lines and lines[0].lstrip().startswith("HTTP/"):
@@ -157,8 +162,27 @@ class ExampleHandler(BaseHTTPRequestHandler):
                     k, v = line.split(":", 1)
                     headers[k.strip()] = v.strip()
 
+        # Extract trailing meta lines if present
+        while (
+            lines
+            and lines[-1].lstrip().startswith("{{{")
+            and lines[-1].rstrip().endswith("}}}")
+        ):
+            suffix_meta_lines.insert(0, lines.pop().strip()[3:-3].strip())
+            while lines and not lines[-1].strip():
+                lines.pop()
+
         body_text = "\n".join(lines)
-        LOGS.append({"request": self.path, "status": status, "response": body_text, "error": status >= 400})
+
+        for m in meta_lines:
+            META_LOGS.append({"direction": "in", "text": m})
+            LOGS.append({"type": "meta_in", "text": m})
+
+        LOGS.append({"type": "http", "request": self.path, "status": status, "response": body_text, "error": status >= 400})
+
+        for m in suffix_meta_lines:
+            META_LOGS.append({"direction": "in", "text": m})
+            LOGS.append({"type": "meta_in", "text": m})
 
         self.send_response(status)
         for k, v in headers.items():

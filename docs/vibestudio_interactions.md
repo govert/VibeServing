@@ -130,7 +130,12 @@ Content-Type: text/html
 
 ## Logging and out‑of‑band messages
 
-The backend keeps an in‑memory list `LOGS` containing dictionaries with `request`, `status`, and `response` fields. The Traffic panel polls `/api/logs` every few seconds to display these entries. Meta messages wrapped in triple braces are parsed into a separate `META_LOGS` list so they can be shown in the new Meta Chat panel, indicating the direction of each message.
+The backend keeps an in‑memory list `LOGS` containing a chronological record of
+all messages. HTTP requests and responses include `request`, `status`, and
+`response` fields while meta messages use a `type` of `meta_in` or `meta_out`.
+The Traffic panel polls `/api/logs` every few seconds to display every exchange.
+Meta messages are also collected in a separate `META_LOGS` list so they appear in
+the Meta Chat panel with clear direction markers.
 
 Future versions may allow the LLM to send notifications separate from the HTTP response stream. These would travel through the backend before reaching the UI.
 
