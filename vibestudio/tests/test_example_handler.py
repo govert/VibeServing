@@ -23,7 +23,13 @@ class ExampleHandlerTest(unittest.TestCase):
         self.patcher = mock.patch.object(
             studio.ExampleHandler,
             "call_llm",
-            lambda self, text: f"REPLY:{text}",
+            lambda self, text: (
+                "{{{ meta }}}\n"
+                "HTTP/1.1 200 OK\n"
+                "Content-Type: text/html\n"
+                "\n"
+                "<html>REPLY</html>"
+            ),
         )
         self.patcher.start()
         studio.LOGS = []
@@ -43,6 +49,7 @@ class ExampleHandlerTest(unittest.TestCase):
         resp = conn.getresponse()
         body = resp.read().decode()
         self.assertIn("REPLY", body)
+        self.assertEqual(resp.getheader("Content-Type"), "text/html")
         self.assertTrue(studio.LOGS)
         self.assertEqual(studio.LOGS[-1]["request"], path)
         self.assertEqual(studio.LOGS[-1]["status"], 200)
