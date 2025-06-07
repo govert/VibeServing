@@ -25,6 +25,14 @@ async function loadMetaPrompt() {
   document.getElementById('meta-prompt').value = data.meta_prompt;
 }
 
+async function loadSettings() {
+  const resp = await fetch('/api/settings');
+  const data = await resp.json();
+  document.getElementById('model').value = data.model || '';
+  document.getElementById('temperature').value = data.temperature || '';
+  document.getElementById('thinking-time').value = data.thinking_time || '';
+}
+
 async function savePrompt() {
   const prompt = document.getElementById('prompt').value;
   await fetch('/api/prompt', {
@@ -40,6 +48,17 @@ async function saveMetaPrompt() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ meta_prompt }),
+  });
+}
+
+async function saveSettings() {
+  const model = document.getElementById('model').value;
+  const temperature = document.getElementById('temperature').value;
+  const thinking_time = document.getElementById('thinking-time').value;
+  await fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, temperature, thinking_time }),
   });
 }
 
@@ -131,6 +150,7 @@ window.addEventListener('load', () => {
   loadExamples();
   loadPrompt();
   loadMetaPrompt();
+  loadSettings();
   loadLogs();
   loadMetaChat();
   document.getElementById('save-prompt').addEventListener('click', savePrompt);
@@ -138,6 +158,7 @@ window.addEventListener('load', () => {
   document.getElementById('restart-server').addEventListener('click', restartServer);
   document.getElementById('run-tests').addEventListener('click', runTests);
   document.getElementById('send-meta').addEventListener('click', sendMeta);
+  document.getElementById('save-settings').addEventListener('click', saveSettings);
   document.getElementById('prompt-chooser').addEventListener('change', (e) => {
     if (e.target.value) {
       document.getElementById('prompt').value = e.target.value;

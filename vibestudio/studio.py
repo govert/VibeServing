@@ -36,6 +36,10 @@ META_PROMPT = _load_file(
         "prompt wrapped in triple braces on its own line."
     ),
 )
+MODEL_FILE = os.path.join(HERE, "model.txt")
+MODEL = _load_file(MODEL_FILE, os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")).strip()
+TEMPERATURE = ""
+THINKING_TIME = ""
 LOGS = []
 META_LOGS = []
 _SERVER_THREAD = None
@@ -86,16 +90,17 @@ class ExampleHandler(BaseHTTPRequestHandler):
             raise RuntimeError("OPENAI_API_KEY environment variable not set")
 
         openai.api_key = api_key
+        model = MODEL or "gpt-3.5-turbo"
         try:  # pragma: no cover - network dependent
             if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
                 response = openai.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model=model,
                     messages=[{"role": "user", "content": prompt_text}],
                 )
                 return response.choices[0].message.content.strip()
             else:
                 response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
+                    model=model,
                     messages=[{"role": "user", "content": prompt_text}],
                 )
                 return response.choices[0].message["content"].strip()
@@ -105,7 +110,7 @@ class ExampleHandler(BaseHTTPRequestHandler):
     def _handle_request(self, send_body: bool = True) -> None:
         """Forward the HTTP request to the LLM and relay the reply."""
 
-        global PROMPT, META_PROMPT, LOGS, META_LOGS
+        global PROMPT, META_PROMPT, LOGS, META_LOGS, MODEL, TEMPERATURE, THINKING_TIME
 
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length) if length else b""
@@ -249,6 +254,8 @@ class StudioHandler(SimpleHTTPRequestHandler):
             self._send_json({"prompt": PROMPT})
         elif parsed.path == "/api/meta_prompt":
             self._send_json({"meta_prompt": META_PROMPT})
+        elif parsed.path == "/api/settings":
+            self._send_json({"model": MODEL, "temperature": TEMPERATURE, "thinking_time": THINKING_TIME})
         elif parsed.path == "/api/logs":
             self._send_json(LOGS)
         elif parsed.path == "/api/meta_logs":
@@ -274,6 +281,17 @@ class StudioHandler(SimpleHTTPRequestHandler):
             META_PROMPT = data.get("meta_prompt", META_PROMPT)
             with open(META_PROMPT_FILE, "w", encoding="utf-8") as fh:
                 fh.write(META_PROMPT)
+            self._send_json({"status": "ok"})
+        elif parsed.path == "/api/settings":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            data = json.loads(body or b"{}")
+            global MODEL, TEMPERATURE, THINKING_TIME
+            MODEL = data.get("model", MODEL)
+            TEMPERATURE = data.get("temperature", TEMPERATURE)
+            THINKING_TIME = data.get("thinking_time", THINKING_TIME)
+            with open(MODEL_FILE, "w", encoding="utf-8") as fh:
+                fh.write(MODEL)
             self._send_json({"status": "ok"})
         elif parsed.path == "/api/restart":
             length = int(self.headers.get("Content-Length", 0))

@@ -15,7 +15,11 @@ These instructions describe a minimal local setup. They do not require installin
    $Env:OPENAI_API_KEY="<your-key>"   # PowerShell
    set OPENAI_API_KEY=<your-key>      # cmd.exe
    ```
-4. (Optional) run the standalone example VibeServer:
+4. (Optional) choose the OpenAI model used by setting `OPENAI_MODEL` or via the Model Settings panel in VibeStudio:
+   ```bash
+   export OPENAI_MODEL="gpt-3.5-turbo"  # or another model name
+   ```
+5. (Optional) run the standalone example VibeServer:
    ```bash
    python examples/simple_server.py
    ```
@@ -26,7 +30,7 @@ python -m unittest examples.test_simple_server
 ```
 See [example_service.md](example_service.md) for more details on the design and tests.
 
-5. Launch VibeStudio in a second terminal:
+6. Launch VibeStudio in a second terminal:
    ```bash
    python -m vibestudio.studio
    ```
