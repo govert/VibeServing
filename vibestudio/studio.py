@@ -74,7 +74,7 @@ def gather_examples():
 
 
 class ExampleHandler(BaseHTTPRequestHandler):
-    """Minimal HTTP handler used by the dashboard."""
+    """HTTP handler that proxies requests to the LLM."""
 
     def call_llm(self, prompt_text: str) -> str:
         """Send ``prompt_text`` to the LLM and return the result."""
@@ -102,9 +102,23 @@ class ExampleHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             return f"LLM call failed: {exc}"
 
-    def do_GET(self):
+    def _handle_request(self, send_body: bool = True) -> None:
+        """Forward the HTTP request to the LLM and relay the reply."""
+
         global PROMPT, META_PROMPT, LOGS, META_LOGS
-        prompt_text = f"{META_PROMPT}\n{PROMPT.format(path=self.path)}"
+
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length) if length else b""
+        request_lines = [f"{self.command} {self.path} HTTP/1.1"]
+        for k, v in self.headers.items():
+            request_lines.append(f"{k}: {v}")
+        request_lines.append("")
+        if body:
+            request_lines.append(body.decode("utf-8", "replace"))
+        request_text = "\n".join(request_lines)
+
+        prompt_body = PROMPT.format(path=self.path, request=request_text)
+        prompt_text = f"{META_PROMPT}\n{prompt_body}\n{request_text}"
         META_LOGS.append({"direction": "out", "text": META_PROMPT})
         status = 200
         try:
@@ -152,7 +166,30 @@ class ExampleHandler(BaseHTTPRequestHandler):
         if "Content-Type" not in headers:
             self.send_header("Content-Type", "text/plain")
         self.end_headers()
-        self.wfile.write(body_text.encode("utf-8"))
+        if send_body:
+            self.wfile.write(body_text.encode("utf-8"))
+
+    # Basic HTTP verbs
+    def do_GET(self):  # noqa: D401 - method docs inherited
+        self._handle_request()
+
+    def do_POST(self):  # noqa: D401 - method docs inherited
+        self._handle_request()
+
+    def do_PUT(self):  # noqa: D401 - method docs inherited
+        self._handle_request()
+
+    def do_DELETE(self):  # noqa: D401 - method docs inherited
+        self._handle_request()
+
+    def do_PATCH(self):  # noqa: D401 - method docs inherited
+        self._handle_request()
+
+    def do_OPTIONS(self):  # noqa: D401 - method docs inherited
+        self._handle_request()
+
+    def do_HEAD(self):  # noqa: D401 - method docs inherited
+        self._handle_request(send_body=False)
 
 
 class _ExampleServerThread(threading.Thread):
