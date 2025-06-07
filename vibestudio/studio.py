@@ -2,6 +2,7 @@ import json
 import os
 import threading
 import subprocess
+import logging
 from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse
 
@@ -9,6 +10,12 @@ try:
     import openai
 except ImportError:  # pragma: no cover - optional for tests
     openai = None
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+LOGGER = logging.getLogger(__name__)
 
 HERE = os.path.dirname(__file__)
 REPO_ROOT = os.path.dirname(HERE)
@@ -51,6 +58,7 @@ def _start_example_server():
     if _SERVER_THREAD is not None:
         _SERVER_THREAD.stop()
         _SERVER_THREAD.join()
+    LOGGER.info("Starting example server thread")
     _SERVER_THREAD = _ExampleServerThread()
     _SERVER_THREAD.start()
 
@@ -91,20 +99,25 @@ class ExampleHandler(BaseHTTPRequestHandler):
 
         openai.api_key = api_key
         model = MODEL or "gpt-3.5-turbo"
+        LOGGER.info("Calling OpenAI model %s", model)
+        LOGGER.debug("Prompt text: %s", prompt_text)
         try:  # pragma: no cover - network dependent
             if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
                 response = openai.chat.completions.create(
                     model=model,
                     messages=[{"role": "user", "content": prompt_text}],
                 )
-                return response.choices[0].message.content.strip()
+                text = response.choices[0].message.content.strip()
             else:
                 response = openai.ChatCompletion.create(
                     model=model,
                     messages=[{"role": "user", "content": prompt_text}],
                 )
-                return response.choices[0].message["content"].strip()
+                text = response.choices[0].message["content"].strip()
+            LOGGER.info("OpenAI response received (%d chars)", len(text))
+            return text
         except Exception as exc:
+            LOGGER.exception("OpenAI call failed")
             return f"LLM call failed: {exc}"
 
     def _handle_request(self, send_body: bool = True) -> None:
@@ -114,6 +127,8 @@ class ExampleHandler(BaseHTTPRequestHandler):
 
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length) if length else b""
+        LOGGER.info("Handling %s %s", self.command, self.path)
+        LOGGER.info("Current log size: %d entries", len(LOGS))
         request_lines = [f"{self.command} {self.path} HTTP/1.1"]
         for k, v in self.headers.items():
             request_lines.append(f"{k}: {v}")
@@ -135,6 +150,7 @@ class ExampleHandler(BaseHTTPRequestHandler):
         try:
             response_text = self.call_llm(prompt_text)
         except Exception as exc:  # pragma: no cover - dependent on environment
+            LOGGER.error("LLM invocation failed: %s", exc)
             status = 500
             response_text = f"LLM error: {exc}"
         lines = response_text.splitlines()
@@ -190,6 +206,7 @@ class ExampleHandler(BaseHTTPRequestHandler):
             LOGS.append({"type": "meta_in", "text": m})
 
         self.send_response(status)
+        LOGGER.info("Responding with status %s", status)
         for k, v in headers.items():
             self.send_header(k, v)
         if "Content-Type" not in headers:
@@ -197,6 +214,7 @@ class ExampleHandler(BaseHTTPRequestHandler):
         self.end_headers()
         if send_body:
             self.wfile.write(body_text.encode("utf-8"))
+        LOGGER.info("Body snippet: %s", body_text[:60].replace("\n", " "))
 
     # Basic HTTP verbs
     def do_GET(self):  # noqa: D401 - method docs inherited
@@ -227,9 +245,14 @@ class _ExampleServerThread(threading.Thread):
         self.server = HTTPServer((host, port), ExampleHandler)
 
     def run(self):
-        self.server.serve_forever()
+        LOGGER.info("Example server started on http://%s:%s", *self.server.server_address)
+        try:
+            self.server.serve_forever()
+        except Exception:
+            LOGGER.exception("Example server crashed")
 
     def stop(self):
+        LOGGER.info("Stopping example server")
         self.server.shutdown()
         self.server.server_close()
 
@@ -329,11 +352,18 @@ def run(host="localhost", port=8500):
     _start_example_server()
     server = HTTPServer((host, port), StudioHandler)
     print(f"VibeStudio running on http://{host}:{port}")
+    LOGGER.info("Server starting on http://%s:%s", host, port)
     try:
         server.serve_forever()
+    except KeyboardInterrupt:
+        print("Stopping VibeStudio...")
+        server.shutdown()
     finally:
+        server.server_close()
+        LOGGER.info("Server stopped")
         if _SERVER_THREAD is not None:
             _SERVER_THREAD.stop()
+            _SERVER_THREAD.join()
 
 
 if __name__ == "__main__":
