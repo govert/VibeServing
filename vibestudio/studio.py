@@ -118,10 +118,29 @@ class ExampleHandler(BaseHTTPRequestHandler):
             meta_lines.append(lines.pop(0)[3:-3].strip())
         for m in meta_lines:
             META_LOGS.append({"direction": "in", "text": m})
+
+        headers = {}
+        if lines and lines[0].startswith("HTTP/"):
+            status_line = lines.pop(0)
+            parts = status_line.split()
+            if len(parts) >= 2 and parts[1].isdigit():
+                status = int(parts[1])
+            while lines:
+                line = lines.pop(0)
+                if not line.strip():
+                    break
+                if ":" in line:
+                    k, v = line.split(":", 1)
+                    headers[k.strip()] = v.strip()
+
         body_text = "\n".join(lines)
-        LOGS.append({"request": self.path, "status": status, "response": body_text, "error": status != 200})
+        LOGS.append({"request": self.path, "status": status, "response": body_text, "error": status >= 400})
+
         self.send_response(status)
-        self.send_header("Content-type", "text/plain")
+        for k, v in headers.items():
+            self.send_header(k, v)
+        if "Content-Type" not in headers:
+            self.send_header("Content-Type", "text/plain")
         self.end_headers()
         self.wfile.write(body_text.encode("utf-8"))
 
