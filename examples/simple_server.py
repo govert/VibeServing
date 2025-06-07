@@ -33,20 +33,21 @@ class Handler(BaseHTTPRequestHandler):
             raise RuntimeError("OPENAI_API_KEY environment variable not set")
 
         openai.api_key = api_key
+        model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
         prompt = f"Echo the following HTTP path and query exactly:\n{path}"
 
         try:
             if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
                 # openai>=1.0
                 response = openai.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model=model,
                     messages=[{"role": "user", "content": prompt}],
                 )
                 text = response.choices[0].message.content.strip()
             else:
                 # openai<1.0
                 response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
+                    model=model,
                     messages=[{"role": "user", "content": prompt}],
                 )
                 text = response.choices[0].message["content"].strip()
