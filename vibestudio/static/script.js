@@ -70,7 +70,13 @@ async function loadLogs() {
   const pre = document.getElementById('traffic');
   for (let i = logIndex; i < logs.length; i++) {
     const l = logs[i];
-    pre.textContent += `${l.status} ${l.request} -> ${l.response}\n`;
+    if (l.type === 'http') {
+      pre.textContent += `${l.status} ${l.request} -> ${l.response}\n`;
+    } else if (l.type === 'meta_out') {
+      pre.textContent += `>> ${l.text}\n`;
+    } else if (l.type === 'meta_in') {
+      pre.textContent += `<< ${l.text}\n`;
+    }
   }
   logIndex = logs.length;
 }
