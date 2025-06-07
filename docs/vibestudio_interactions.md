@@ -130,7 +130,7 @@ Content-Type: text/html
 
 ## Logging and out‑of‑band messages
 
-The backend keeps an in‑memory list `LOGS` containing dictionaries with `request` and `response` fields. The Traffic panel polls `/api/logs` every few seconds to display these entries. Any additional metadata returned by the LLM could be surfaced in a similar way—for example, diagnostics wrapped in triple braces.
+The backend keeps an in‑memory list `LOGS` containing dictionaries with `request`, `status`, and `response` fields. The Traffic panel polls `/api/logs` every few seconds to display these entries. Meta messages wrapped in triple braces are parsed into a separate `META_LOGS` list so they can be shown in the new Meta Chat panel, indicating the direction of each message.
 
 Future versions may allow the LLM to send notifications separate from the HTTP response stream. These would travel through the backend before reaching the UI.
 

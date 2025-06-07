@@ -90,7 +90,14 @@ async function loadLogs() {
   const resp = await fetch('/api/logs');
   const logs = await resp.json();
   const pre = document.getElementById('traffic');
-  pre.textContent = logs.map(l => `${l.request} -> ${l.response}`).join('\n');
+  pre.textContent = logs.map(l => `${l.status} ${l.request} -> ${l.response}`).join('\n');
+}
+
+async function loadMetaChat() {
+  const resp = await fetch('/api/meta_logs');
+  const logs = await resp.json();
+  const pre = document.getElementById('meta-chat');
+  pre.textContent = logs.map(l => (l.direction === 'out' ? '>> ' : '<< ') + l.text).join('\n');
 }
 
 async function runTests() {
@@ -105,6 +112,7 @@ window.addEventListener('load', () => {
   loadPrompt();
   loadMetaPrompt();
   loadLogs();
+  loadMetaChat();
   document.getElementById('save-prompt').addEventListener('click', savePrompt);
   document.getElementById('save-meta').addEventListener('click', saveMetaPrompt);
   document.getElementById('restart-server').addEventListener('click', restartServer);
@@ -115,4 +123,5 @@ window.addEventListener('load', () => {
     }
   });
   setInterval(loadLogs, 2000);
+  setInterval(loadMetaChat, 2000);
 });
