@@ -86,5 +86,44 @@ class ExampleHandlerErrorTest(unittest.TestCase):
         self.assertTrue(studio.LOGS[-1]["error"])
 
 
+class ExampleHandlerPostTest(unittest.TestCase):
+    def setUp(self):
+        self.captured = {}
+        outer = self
+
+        def fake_call(self, text):
+            outer.captured["text"] = text
+            return (
+                "{{{ meta }}}\n"
+                "HTTP/1.1 200 OK\n"
+                "Content-Type: text/plain\n"
+                "\n"
+                "ok"
+            )
+
+        self.patcher = mock.patch.object(studio.ExampleHandler, "call_llm", fake_call)
+        self.patcher.start()
+        studio.LOGS = []
+        studio.META_LOGS = []
+        self.thread = _ServerThread()
+        self.thread.start()
+
+    def tearDown(self):
+        self.thread.stop()
+        self.thread.join()
+        self.patcher.stop()
+
+    def test_post_body_forwarded(self):
+        conn = HTTPConnection("localhost", 8002)
+        body = "name=Bob"
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        conn.request("POST", "/submit", body=body, headers=headers)
+        resp = conn.getresponse()
+        resp.read()
+        self.assertEqual(resp.status, 200)
+        self.assertIn("POST /submit", self.captured["text"])
+        self.assertIn(body, self.captured["text"])
+
+
 if __name__ == "__main__":
     unittest.main()
