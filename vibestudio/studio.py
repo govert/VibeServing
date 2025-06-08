@@ -157,6 +157,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         global CONVERSATION
         CONVERSATION.append({"role": "user", "content": request_text})
+        llm_request = list(CONVERSATION)
         status = 200
         try:
             response_text = self.call_llm(CONVERSATION)
@@ -165,6 +166,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             status = 500
             response_text = f"LLM error: {exc}"
         CONVERSATION.append({"role": "assistant", "content": response_text})
+        LOGS.append({"type": "llm_exchange", "request": llm_request, "response": response_text})
         lines = response_text.splitlines()
         # Trim leading blank lines so slightly malformed responses still parse
         while lines and not lines[0].strip():
@@ -297,6 +299,16 @@ class StudioHandler(SimpleHTTPRequestHandler):
             self._send_json(LOGS)
         elif parsed.path == "/api/meta_logs":
             self._send_json(META_LOGS)
+        elif parsed.path == "/api/transcript":
+            self._send_json({
+                "prompt": PROMPT,
+                "meta_prompt": META_PROMPT,
+                "model": MODEL,
+                "temperature": TEMPERATURE,
+                "thinking_time": THINKING_TIME,
+                "logs": LOGS,
+                "meta_logs": META_LOGS,
+            })
         else:
             super().do_GET()
 

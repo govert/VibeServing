@@ -113,6 +113,9 @@ async function loadLogs() {
       pre.textContent += `>> ${l.text}\n`;
     } else if (l.type === 'meta_in') {
       pre.textContent += `<< ${l.text}\n`;
+    } else if (l.type === 'llm_exchange') {
+      pre.textContent += `[LLM REQUEST] ${JSON.stringify(l.request)}\n`;
+      pre.textContent += `[LLM RESPONSE] ${l.response}\n`;
     }
   }
   logIndex = logs.length;
@@ -143,6 +146,16 @@ async function runTests() {
   const data = await fetchJson('/api/run_tests', { method: 'POST' });
   if (data) {
     document.getElementById('test-output').textContent = data.output;
+  }
+}
+
+async function copyTranscript() {
+  const data = await fetchJson('/api/transcript');
+  if (data) {
+    await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    const status = document.getElementById('copy-status');
+    status.style.display = 'inline';
+    setTimeout(() => { status.style.display = 'none'; }, 2000);
   }
 }
 
@@ -178,6 +191,8 @@ window.addEventListener('load', () => {
   document.getElementById('run-tests').addEventListener('click', runTests);
   document.getElementById('send-meta').addEventListener('click', sendMeta);
   document.getElementById('save-settings').addEventListener('click', saveSettings);
+  const ct = document.getElementById('copy-transcript');
+  if (ct) ct.addEventListener('click', copyTranscript);
   document.getElementById('prompt-chooser').addEventListener('change', (e) => {
     if (e.target.value) {
       document.getElementById('prompt').value = e.target.value;
