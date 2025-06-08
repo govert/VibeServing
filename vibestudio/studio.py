@@ -55,6 +55,19 @@ THINKING_TIME = ""
 LOGS = []
 META_LOGS = []
 _SERVER_THREAD = None
+CONVERSATION = []
+
+def _reset_conversation():
+    """Initialise the conversation with the active prompts."""
+    global CONVERSATION
+    CONVERSATION = [
+        {"role": "system", "content": f"{{{{{META_PROMPT}}}}}"},
+        {"role": "user", "content": f"{{{{{PROMPT}}}}}"},
+    ]
+    META_LOGS.append({"direction": "out", "text": META_PROMPT})
+    LOGS.append({"type": "meta_out", "text": META_PROMPT})
+    META_LOGS.append({"direction": "out", "text": PROMPT})
+    LOGS.append({"type": "meta_out", "text": PROMPT})
 
 
 def _start_proxy_server():
@@ -93,8 +106,8 @@ def gather_examples():
 class ProxyHandler(BaseHTTPRequestHandler):
     """HTTP handler that proxies requests to the LLM."""
 
-    def call_llm(self, prompt_text: str) -> str:
-        """Send ``prompt_text`` to the LLM and return the result."""
+    def call_llm(self, messages):
+        """Send ``messages`` to the LLM and return the reply text."""
         if openai is None:
             raise RuntimeError("openai package is required for LLM calls")
 
@@ -105,18 +118,18 @@ class ProxyHandler(BaseHTTPRequestHandler):
         openai.api_key = api_key
         model = MODEL or "gpt-3.5-turbo"
         LOGGER.info("Calling OpenAI model %s", model)
-        LOGGER.debug("Prompt text: %s", prompt_text)
+        LOGGER.debug("Messages: %s", messages)
         try:  # pragma: no cover - network dependent
             if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
                 response = openai.chat.completions.create(
                     model=model,
-                    messages=[{"role": "user", "content": prompt_text}],
+                    messages=messages,
                 )
                 text = response.choices[0].message.content.strip()
             else:
                 response = openai.ChatCompletion.create(
                     model=model,
-                    messages=[{"role": "user", "content": prompt_text}],
+                    messages=messages,
                 )
                 text = response.choices[0].message["content"].strip()
             LOGGER.info("OpenAI response received (%d chars)", len(text))
@@ -142,22 +155,16 @@ class ProxyHandler(BaseHTTPRequestHandler):
             request_lines.append(body.decode("utf-8", "replace"))
         request_text = "\n".join(request_lines)
 
-        prompt_body = PROMPT.format(path=self.path, request=request_text)
-        prompt_text = f"{META_PROMPT}\n{prompt_body}\n{request_text}"
-
-        # Log outgoing meta and service prompts
-        META_LOGS.append({"direction": "out", "text": META_PROMPT})
-        LOGS.append({"type": "meta_out", "text": META_PROMPT})
-
-        META_LOGS.append({"direction": "out", "text": prompt_body})
-        LOGS.append({"type": "meta_out", "text": prompt_body})
+        global CONVERSATION
+        CONVERSATION.append({"role": "user", "content": request_text})
         status = 200
         try:
-            response_text = self.call_llm(prompt_text)
+            response_text = self.call_llm(CONVERSATION)
         except Exception as exc:  # pragma: no cover - dependent on environment
             LOGGER.error("LLM invocation failed: %s", exc)
             status = 500
             response_text = f"LLM error: {exc}"
+        CONVERSATION.append({"role": "assistant", "content": response_text})
         lines = response_text.splitlines()
         # Trim leading blank lines so slightly malformed responses still parse
         while lines and not lines[0].strip():
@@ -332,6 +339,7 @@ class StudioHandler(SimpleHTTPRequestHandler):
             META_PROMPT = data.get("meta_prompt", META_PROMPT)
             LOGS = []
             META_LOGS = []
+            _reset_conversation()
             _start_proxy_server()
             self._send_json({"status": "restarted"})
         elif parsed.path == "/api/meta_chat":
@@ -340,8 +348,12 @@ class StudioHandler(SimpleHTTPRequestHandler):
             data = json.loads(body or b"{}")
             text = data.get("text", "")
             META_LOGS.append({"direction": "out", "text": text})
-            response = ProxyHandler.call_llm(ProxyHandler, text)
+            LOGS.append({"type": "meta_out", "text": text})
+            CONVERSATION.append({"role": "user", "content": f"{{{{{text}}}}}"})
+            response = ProxyHandler.call_llm(ProxyHandler, CONVERSATION)
+            CONVERSATION.append({"role": "assistant", "content": response})
             META_LOGS.append({"direction": "in", "text": response})
+            LOGS.append({"type": "meta_in", "text": response})
             self._send_json({"response": response})
         elif parsed.path == "/api/run_tests":
             result = subprocess.run([
@@ -357,6 +369,9 @@ class StudioHandler(SimpleHTTPRequestHandler):
 
 
 def run(host="localhost", port=8500):
+    LOGS.clear()
+    META_LOGS.clear()
+    _reset_conversation()
     _start_proxy_server()
     # ThreadingHTTPServer allows the dashboard to remain responsive while
     # the proxy server handles slower LLM requests.

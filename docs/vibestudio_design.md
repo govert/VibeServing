@@ -23,25 +23,21 @@ and providing a step‑by‑step roadmap to a working implementation.
 ## Interaction flow
 
 Restarting the server from the Prompt panels begins a fresh conversation
-with the LLM. The **Service Prompt** entered by the developer is combined
-with the persistent **Meta Prompt** (loaded from `vibestudio/meta_prompt.txt`)
-and hidden instructions telling the model to behave as a VibeServer. These meta
-messages are surrounded by triple braces on their own lines, for example
-`{{{ system prompt }}}`, to clearly separate them from ordinary HTTP content.
-VibeStudio then sends an HTTP `GET /` request over that conversation and
-shows the raw request in the Traffic panel. The model replies with an
-HTTP response, which is logged and rendered in the Browser panel. The
-panel now includes a small address bar and Back button so you can
-navigate to specific URLs and return to previous pages. Meta messages
-returned by the model are captured separately so they can be
-displayed in a **Meta Chat** panel for debugging and also appear in the
-Traffic panel so every exchange with the LLM is visible. To mirror the real
-VibeServer behaviour, the bundled proxy server includes
-the meta prompt at the top of each response, wrapped in triple braces
-(`{{{ meta }}}`). All subsequent user actions are proxied as HTTP
-requests and responses. Future versions may also forward out‑of‑band
-messages such as notifications. Only HTTP is supported today, but
-additional protocols can be added later.
+with the LLM. The **Service Prompt** and **Meta Prompt** (loaded from
+`vibestudio/meta_prompt.txt`) are sent once at the start of that
+conversation, each wrapped in triple braces on its own line such as
+`{{{ meta prompt }}}`. After this initial handshake the proxy only forwards
+HTTP requests or meta chat comments, appending each one to the same
+conversation so context accumulates over time. VibeStudio issues an HTTP
+`GET /` request immediately after the prompts so the first page loads
+automatically. The model's reply is logged and rendered in the Browser
+panel. Navigation works like a normal browser—the request text is sent as
+a new message and the HTTP response from the model is shown. Meta messages
+are captured separately so they appear in a **Meta Chat** panel as well as
+in the Traffic log. To mirror the real VibeServer behaviour, the proxy
+echoes the meta prompt at the top of each response wrapped in triple
+braces (`{{{ meta }}}`). Future versions may forward additional protocols
+or out‑of‑band notifications, but today only HTTP is supported.
 
 
 ## Roadmap

@@ -23,7 +23,7 @@ class ProxyHandlerTest(unittest.TestCase):
         self.patcher = mock.patch.object(
             studio.ProxyHandler,
             "call_llm",
-            lambda self, text: (
+            lambda self, messages: (
                 "   {{{ meta }}}\n"
                 "  HTTP/1.1 200 OK\n"
                 "  Content-Type: text/html\n"
@@ -34,6 +34,7 @@ class ProxyHandlerTest(unittest.TestCase):
         self.patcher.start()
         studio.LOGS = []
         studio.META_LOGS = []
+        studio.CONVERSATION = []
         self.thread = _ServerThread()
         self.thread.start()
 
@@ -66,6 +67,7 @@ class ProxyHandlerErrorTest(unittest.TestCase):
         self.patcher.start()
         studio.LOGS = []
         studio.META_LOGS = []
+        studio.CONVERSATION = []
         self.thread = _ServerThread()
         self.thread.start()
 
@@ -91,8 +93,8 @@ class ProxyHandlerPostTest(unittest.TestCase):
         self.captured = {}
         outer = self
 
-        def fake_call(self, text):
-            outer.captured["text"] = text
+        def fake_call(self, messages):
+            outer.captured["messages"] = list(messages)
             return (
                 "{{{ meta }}}\n"
                 "HTTP/1.1 200 OK\n"
@@ -105,6 +107,7 @@ class ProxyHandlerPostTest(unittest.TestCase):
         self.patcher.start()
         studio.LOGS = []
         studio.META_LOGS = []
+        studio.CONVERSATION = []
         self.thread = _ServerThread()
         self.thread.start()
 
@@ -121,8 +124,9 @@ class ProxyHandlerPostTest(unittest.TestCase):
         resp = conn.getresponse()
         resp.read()
         self.assertEqual(resp.status, 200)
-        self.assertIn("POST /submit", self.captured["text"])
-        self.assertIn(body, self.captured["text"])
+        sent = self.captured["messages"][-1]["content"]
+        self.assertIn("POST /submit", sent)
+        self.assertIn(body, sent)
 
 
 if __name__ == "__main__":

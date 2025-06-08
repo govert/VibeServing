@@ -16,10 +16,11 @@ class OpenAIModelEnvTest(unittest.TestCase):
         with mock.patch.dict(studio.__dict__, {"openai": fake_openai}):
             with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "x"}):
                 studio.MODEL = "test-model"
-                studio.ProxyHandler.call_llm(studio.ProxyHandler, "prompt")
+                messages = [{"role": "user", "content": "prompt"}]
+                studio.ProxyHandler.call_llm(studio.ProxyHandler, messages)
                 fake_openai.chat.completions.create.assert_called_with(
                     model="test-model",
-                    messages=[{"role": "user", "content": "prompt"}],
+                    messages=messages,
                 )
 
 if __name__ == "__main__":
