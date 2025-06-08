@@ -1,10 +1,10 @@
 # Testing Strategy
 
-This document explains how automated and manual tests ensure VibeStudio and the example server behave predictably.
+This document explains how automated and manual tests ensure VibeStudio and the proxy server behave predictably.
 
 ## Unit tests
 
-- **Request handling and logging** – `vibestudio/tests/test_example_handler.py` spins up the example HTTP server in a background thread. It issues a request and asserts that the response contains the expected text and that the request/response pair was recorded in `studio.LOGS`.
+- **Request handling and logging** – `vibestudio/tests/test_proxy_handler.py` spins up the proxy HTTP server in a background thread. It issues a request and asserts that the response contains the expected text and that the request/response pair was recorded in `studio.LOGS`.
 - **Example server** – `examples/test_simple_server.py` exercises the standalone server in `examples/simple_server.py`.
 - Both test suites patch `call_llm` so no real network calls occur. This ensures deterministic results and allows the tests to run without API keys.
 

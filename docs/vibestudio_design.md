@@ -36,7 +36,7 @@ navigate to specific URLs and return to previous pages. Meta messages
 returned by the model are captured separately so they can be
 displayed in a **Meta Chat** panel for debugging and also appear in the
 Traffic panel so every exchange with the LLM is visible. To mirror the real
-VibeServer behaviour, the bundled example server includes
+VibeServer behaviour, the bundled proxy server includes
 the meta prompt at the top of each response, wrapped in triple braces
 (`{{{ meta }}}`). All subsequent user actions are proxied as HTTP
 requests and responses. Future versions may also forward out‑of‑band

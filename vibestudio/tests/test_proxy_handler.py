@@ -8,7 +8,7 @@ from vibestudio import studio
 class _ServerThread(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
-        self.server = studio.HTTPServer(("localhost", 8002), studio.ExampleHandler)
+        self.server = studio.HTTPServer(("localhost", 8002), studio.ProxyHandler)
 
     def run(self):
         self.server.serve_forever()
@@ -18,10 +18,10 @@ class _ServerThread(threading.Thread):
         self.server.server_close()
 
 
-class ExampleHandlerTest(unittest.TestCase):
+class ProxyHandlerTest(unittest.TestCase):
     def setUp(self):
         self.patcher = mock.patch.object(
-            studio.ExampleHandler,
+            studio.ProxyHandler,
             "call_llm",
             lambda self, text: (
                 "   {{{ meta }}}\n"
@@ -56,10 +56,10 @@ class ExampleHandlerTest(unittest.TestCase):
         self.assertTrue(studio.META_LOGS)  # meta prompt logged
 
 
-class ExampleHandlerErrorTest(unittest.TestCase):
+class ProxyHandlerErrorTest(unittest.TestCase):
     def setUp(self):
         self.patcher = mock.patch.object(
-            studio.ExampleHandler,
+            studio.ProxyHandler,
             "call_llm",
             side_effect=RuntimeError("missing key"),
         )
@@ -86,7 +86,7 @@ class ExampleHandlerErrorTest(unittest.TestCase):
         self.assertTrue(studio.LOGS[-1]["error"])
 
 
-class ExampleHandlerPostTest(unittest.TestCase):
+class ProxyHandlerPostTest(unittest.TestCase):
     def setUp(self):
         self.captured = {}
         outer = self
@@ -101,7 +101,7 @@ class ExampleHandlerPostTest(unittest.TestCase):
                 "ok"
             )
 
-        self.patcher = mock.patch.object(studio.ExampleHandler, "call_llm", fake_call)
+        self.patcher = mock.patch.object(studio.ProxyHandler, "call_llm", fake_call)
         self.patcher.start()
         studio.LOGS = []
         studio.META_LOGS = []
