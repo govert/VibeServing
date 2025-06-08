@@ -56,6 +56,7 @@ LOGS = []
 META_LOGS = []
 _SERVER_THREAD = None
 CONVERSATION = []
+STATE_LOCK = threading.Lock()
 
 def _reset_conversation():
     """Initialise the conversation with the active prompts."""
@@ -156,8 +157,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
         request_text = "\n".join(request_lines)
 
         global CONVERSATION
-        CONVERSATION.append({"role": "user", "content": request_text})
-        llm_request = list(CONVERSATION)
+        with STATE_LOCK:
+            CONVERSATION.append({"role": "user", "content": request_text})
+            llm_request = list(CONVERSATION)
         status = 200
         try:
             response_text = self.call_llm(CONVERSATION)
@@ -165,8 +167,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
             LOGGER.error("LLM invocation failed: %s", exc)
             status = 500
             response_text = f"LLM error: {exc}"
-        CONVERSATION.append({"role": "assistant", "content": response_text})
-        LOGS.append({"type": "llm_exchange", "request": llm_request, "response": response_text})
+        with STATE_LOCK:
+            CONVERSATION.append({"role": "assistant", "content": response_text})
+            LOGS.append({"type": "llm_exchange", "request": llm_request, "response": response_text})
         lines = response_text.splitlines()
         # Trim leading blank lines so slightly malformed responses still parse
         while lines and not lines[0].strip():
@@ -210,14 +213,17 @@ class ProxyHandler(BaseHTTPRequestHandler):
         body_text = "\n".join(lines)
 
         for m in meta_lines:
-            META_LOGS.append({"direction": "in", "text": m})
-            LOGS.append({"type": "meta_in", "text": m})
+            with STATE_LOCK:
+                META_LOGS.append({"direction": "in", "text": m})
+                LOGS.append({"type": "meta_in", "text": m})
 
-        LOGS.append({"type": "http", "request": self.path, "status": status, "response": body_text, "error": status >= 400})
+        with STATE_LOCK:
+            LOGS.append({"type": "http", "request": self.path, "status": status, "response": body_text, "error": status >= 400})
 
         for m in suffix_meta_lines:
-            META_LOGS.append({"direction": "in", "text": m})
-            LOGS.append({"type": "meta_in", "text": m})
+            with STATE_LOCK:
+                META_LOGS.append({"direction": "in", "text": m})
+                LOGS.append({"type": "meta_in", "text": m})
 
         self.send_response(status)
         LOGGER.info("Responding with status %s", status)
@@ -347,11 +353,12 @@ class StudioHandler(SimpleHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             data = json.loads(body or b"{}")
-            PROMPT = data.get("prompt", PROMPT)
-            META_PROMPT = data.get("meta_prompt", META_PROMPT)
-            LOGS = []
-            META_LOGS = []
-            _reset_conversation()
+            with STATE_LOCK:
+                PROMPT = data.get("prompt", PROMPT)
+                META_PROMPT = data.get("meta_prompt", META_PROMPT)
+                LOGS = []
+                META_LOGS = []
+                _reset_conversation()
             _start_proxy_server()
             self._send_json({"status": "restarted"})
         elif parsed.path == "/api/meta_chat":
@@ -359,13 +366,16 @@ class StudioHandler(SimpleHTTPRequestHandler):
             body = self.rfile.read(length)
             data = json.loads(body or b"{}")
             text = data.get("text", "")
-            META_LOGS.append({"direction": "out", "text": text})
-            LOGS.append({"type": "meta_out", "text": text})
-            CONVERSATION.append({"role": "user", "content": f"{{{{{text}}}}}"})
-            response = ProxyHandler.call_llm(ProxyHandler, CONVERSATION)
-            CONVERSATION.append({"role": "assistant", "content": response})
-            META_LOGS.append({"direction": "in", "text": response})
-            LOGS.append({"type": "meta_in", "text": response})
+            with STATE_LOCK:
+                META_LOGS.append({"direction": "out", "text": text})
+                LOGS.append({"type": "meta_out", "text": text})
+                CONVERSATION.append({"role": "user", "content": f"{{{{{text}}}}}"})
+                llm_messages = list(CONVERSATION)
+            response = ProxyHandler.call_llm(ProxyHandler, llm_messages)
+            with STATE_LOCK:
+                CONVERSATION.append({"role": "assistant", "content": response})
+                META_LOGS.append({"direction": "in", "text": response})
+                LOGS.append({"type": "meta_in", "text": response})
             self._send_json({"response": response})
         elif parsed.path == "/api/run_tests":
             result = subprocess.run([
@@ -381,9 +391,10 @@ class StudioHandler(SimpleHTTPRequestHandler):
 
 
 def run(host="localhost", port=8500):
-    LOGS.clear()
-    META_LOGS.clear()
-    _reset_conversation()
+    with STATE_LOCK:
+        LOGS.clear()
+        META_LOGS.clear()
+        _reset_conversation()
     _start_proxy_server()
     # ThreadingHTTPServer allows the dashboard to remain responsive while
     # the proxy server handles slower LLM requests.
