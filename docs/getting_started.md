@@ -8,7 +8,7 @@ These instructions describe a minimal local setup. They do not require installin
    pip install -r requirements.txt
    ```
    This installs `openai>=1.0`, so the example server uses the
-   updated `openai.chat.completions` API.
+   updated `openai.responses` API.
 3. Set your OpenAI API key so the example can contact the model:
    ```bash
    export OPENAI_API_KEY="<your-key>"  # Linux/macOS

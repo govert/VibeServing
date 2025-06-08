@@ -56,15 +56,17 @@ LOGS = []
 META_LOGS = []
 _SERVER_THREAD = None
 CONVERSATION = []
+PREVIOUS_RESPONSE_ID = None
 STATE_LOCK = threading.Lock()
 
 def _reset_conversation():
     """Initialise the conversation with the active prompts."""
-    global CONVERSATION
+    global CONVERSATION, PREVIOUS_RESPONSE_ID
     CONVERSATION = [
         {"role": "system", "content": f"{{{{{META_PROMPT}}}}}"},
         {"role": "user", "content": f"{{{{{PROMPT}}}}}"},
     ]
+    PREVIOUS_RESPONSE_ID = None
     META_LOGS.append({"direction": "out", "text": META_PROMPT})
     LOGS.append({"type": "meta_out", "text": META_PROMPT})
     META_LOGS.append({"direction": "out", "text": PROMPT})
@@ -121,7 +123,16 @@ class ProxyHandler(BaseHTTPRequestHandler):
         LOGGER.info("Calling OpenAI model %s", model)
         LOGGER.debug("Messages: %s", messages)
         try:  # pragma: no cover - network dependent
-            if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
+            global PREVIOUS_RESPONSE_ID
+            if hasattr(openai, "responses"):
+                response = openai.responses.create(
+                    model=model,
+                    messages=messages,
+                    previous_response_id=PREVIOUS_RESPONSE_ID,
+                )
+                PREVIOUS_RESPONSE_ID = response.id
+                text = response.choices[0].message.content.strip()
+            elif hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
                 response = openai.chat.completions.create(
                     model=model,
                     messages=messages,
