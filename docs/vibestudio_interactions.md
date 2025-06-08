@@ -95,13 +95,15 @@ This document expands on the existing design notes by walking through how a deve
 1. The developer starts the dashboard with `python -m vibestudio.studio`.
 2. The backend loads `prompt.txt` and `meta_prompt.txt`, then launches an example HTTP server on port 8000.
 3. The browser loads `http://localhost:8500/` and renders the panels.
-4. When *Restart Server* is pressed, the backend combines the Service and Meta prompts and sends an initial `GET /` request to the LLM. The response populates the Browser panel.
+4. When *Restart Server* is pressed, the backend sends the Meta and Service prompts once, wrapped in triple braces, then issues an initial `GET /` request so the first page loads. The response populates the Browser panel.
 
 Sequence diagram for the restart flow:
 
 ```
 Browser -> Backend: POST /api/restart (prompts)
-Backend -> LLM: meta + service prompt + "GET /" request
+Backend -> LLM: "{{{ meta prompt }}}"
+Backend -> LLM: "{{{ service prompt }}}"
+Backend -> LLM: "GET /" request
 LLM -> Backend: HTTP response
 Backend -> Browser: update traffic log
 Browser -> Browser: iframe loads http://localhost:8000/
@@ -113,7 +115,7 @@ After the server is restarted, the Browser panel acts as a regular client. Each 
 
 ```
 Browser -> Backend: HTTP request via iframe
-Backend -> LLM: same request prefixed with meta prompt
+Backend -> LLM: append request to conversation
 LLM -> Backend: HTTP response
 Backend -> Browser: relay response and append log entry
 ```
