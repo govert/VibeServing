@@ -271,6 +271,7 @@ class StudioHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        LOGGER.info("Studio GET %s", parsed.path)
         if parsed.path == "/api/examples":
             self._send_json(gather_examples())
         elif parsed.path == "/api/prompt":
@@ -289,6 +290,7 @@ class StudioHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         global PROMPT, META_PROMPT, LOGS, META_LOGS
         parsed = urlparse(self.path)
+        LOGGER.info("Studio POST %s", parsed.path)
         if parsed.path == "/api/prompt":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
