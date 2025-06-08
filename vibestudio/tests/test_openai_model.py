@@ -10,6 +10,7 @@ class OpenAIModelEnvTest(unittest.TestCase):
         fake_response = types.SimpleNamespace()
         fake_response.choices = [types.SimpleNamespace(message=types.SimpleNamespace(content="ok"))]
         fake_openai = types.SimpleNamespace()
+        fake_openai.responses = types.SimpleNamespace(create=mock.Mock(return_value=fake_response))
         fake_openai.chat = types.SimpleNamespace()
         fake_openai.chat.completions = types.SimpleNamespace(create=mock.Mock(return_value=fake_response))
         fake_openai.ChatCompletion = types.SimpleNamespace(create=mock.Mock(return_value=fake_response))
@@ -18,9 +19,10 @@ class OpenAIModelEnvTest(unittest.TestCase):
                 studio.MODEL = "test-model"
                 messages = [{"role": "user", "content": "prompt"}]
                 studio.ProxyHandler.call_llm(studio.ProxyHandler, messages)
-                fake_openai.chat.completions.create.assert_called_with(
+                fake_openai.responses.create.assert_called_with(
                     model="test-model",
                     messages=messages,
+                    previous_response_id=None,
                 )
 
 if __name__ == "__main__":

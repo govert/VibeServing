@@ -13,6 +13,8 @@ try:
 except ImportError:  # pragma: no cover - library may not be installed
     openai = None
 
+PREVIOUS_RESPONSE_ID = None
+
 class Handler(BaseHTTPRequestHandler):
     """Basic request handler that proxies to an LLM."""
 
@@ -37,15 +39,22 @@ class Handler(BaseHTTPRequestHandler):
         prompt = f"Echo the following HTTP path and query exactly:\n{path}"
 
         try:
-            if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
-                # openai>=1.0
+            global PREVIOUS_RESPONSE_ID
+            if hasattr(openai, "responses"):
+                response = openai.responses.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    previous_response_id=PREVIOUS_RESPONSE_ID,
+                )
+                PREVIOUS_RESPONSE_ID = response.id
+                text = response.choices[0].message.content.strip()
+            elif hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
                 response = openai.chat.completions.create(
                     model=model,
                     messages=[{"role": "user", "content": prompt}],
                 )
                 text = response.choices[0].message.content.strip()
             else:
-                # openai<1.0
                 response = openai.ChatCompletion.create(
                     model=model,
                     messages=[{"role": "user", "content": prompt}],
