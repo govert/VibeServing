@@ -3,7 +3,12 @@ import os
 import threading
 import subprocess
 import logging
-from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, HTTPServer
+from http.server import (
+    BaseHTTPRequestHandler,
+    SimpleHTTPRequestHandler,
+    ThreadingHTTPServer,
+    HTTPServer,
+)
 from urllib.parse import urlparse
 
 try:
@@ -242,7 +247,8 @@ class ExampleHandler(BaseHTTPRequestHandler):
 class _ExampleServerThread(threading.Thread):
     def __init__(self, host="localhost", port=8000):
         super().__init__(daemon=True)
-        self.server = HTTPServer((host, port), ExampleHandler)
+        # Use ThreadingHTTPServer so long LLM calls do not block other requests
+        self.server = ThreadingHTTPServer((host, port), ExampleHandler)
 
     def run(self):
         LOGGER.info("Example server started on http://%s:%s", *self.server.server_address)
@@ -352,7 +358,9 @@ class StudioHandler(SimpleHTTPRequestHandler):
 
 def run(host="localhost", port=8500):
     _start_example_server()
-    server = HTTPServer((host, port), StudioHandler)
+    # ThreadingHTTPServer allows the dashboard to remain responsive while
+    # the example server handles slower LLM requests.
+    server = ThreadingHTTPServer((host, port), StudioHandler)
     print(f"VibeStudio running on http://{host}:{port}")
     LOGGER.info("Server starting on http://%s:%s", host, port)
     try:
