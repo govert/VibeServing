@@ -57,14 +57,14 @@ META_LOGS = []
 _SERVER_THREAD = None
 
 
-def _start_example_server():
-    """(Re)start the background example server."""
+def _start_proxy_server():
+    """(Re)start the background proxy server."""
     global _SERVER_THREAD
     if _SERVER_THREAD is not None:
         _SERVER_THREAD.stop()
         _SERVER_THREAD.join()
-    LOGGER.info("Starting example server thread")
-    _SERVER_THREAD = _ExampleServerThread()
+    LOGGER.info("Starting proxy server thread")
+    _SERVER_THREAD = _ProxyServerThread()
     _SERVER_THREAD.start()
 
 
@@ -90,7 +90,7 @@ def gather_examples():
     return items
 
 
-class ExampleHandler(BaseHTTPRequestHandler):
+class ProxyHandler(BaseHTTPRequestHandler):
     """HTTP handler that proxies requests to the LLM."""
 
     def call_llm(self, prompt_text: str) -> str:
@@ -244,21 +244,21 @@ class ExampleHandler(BaseHTTPRequestHandler):
         self._handle_request(send_body=False)
 
 
-class _ExampleServerThread(threading.Thread):
+class _ProxyServerThread(threading.Thread):
     def __init__(self, host="localhost", port=8000):
         super().__init__(daemon=True)
         # Use ThreadingHTTPServer so long LLM calls do not block other requests
-        self.server = ThreadingHTTPServer((host, port), ExampleHandler)
+        self.server = ThreadingHTTPServer((host, port), ProxyHandler)
 
     def run(self):
-        LOGGER.info("Example server started on http://%s:%s", *self.server.server_address)
+        LOGGER.info("Proxy server started on http://%s:%s", *self.server.server_address)
         try:
             self.server.serve_forever()
         except Exception:
-            LOGGER.exception("Example server crashed")
+            LOGGER.exception("Proxy server crashed")
 
     def stop(self):
-        LOGGER.info("Stopping example server")
+        LOGGER.info("Stopping proxy server")
         self.server.shutdown()
         self.server.server_close()
 
@@ -332,7 +332,7 @@ class StudioHandler(SimpleHTTPRequestHandler):
             META_PROMPT = data.get("meta_prompt", META_PROMPT)
             LOGS = []
             META_LOGS = []
-            _start_example_server()
+            _start_proxy_server()
             self._send_json({"status": "restarted"})
         elif parsed.path == "/api/meta_chat":
             length = int(self.headers.get("Content-Length", 0))
@@ -340,7 +340,7 @@ class StudioHandler(SimpleHTTPRequestHandler):
             data = json.loads(body or b"{}")
             text = data.get("text", "")
             META_LOGS.append({"direction": "out", "text": text})
-            response = ExampleHandler.call_llm(ExampleHandler, text)
+            response = ProxyHandler.call_llm(ProxyHandler, text)
             META_LOGS.append({"direction": "in", "text": response})
             self._send_json({"response": response})
         elif parsed.path == "/api/run_tests":
@@ -357,9 +357,9 @@ class StudioHandler(SimpleHTTPRequestHandler):
 
 
 def run(host="localhost", port=8500):
-    _start_example_server()
+    _start_proxy_server()
     # ThreadingHTTPServer allows the dashboard to remain responsive while
-    # the example server handles slower LLM requests.
+    # the proxy server handles slower LLM requests.
     server = ThreadingHTTPServer((host, port), StudioHandler)
     print(f"VibeStudio running on http://{host}:{port}")
     LOGGER.info("Server starting on http://%s:%s", host, port)
