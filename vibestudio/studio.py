@@ -120,6 +120,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         openai.api_key = api_key
         model = MODEL or "gpt-3.5-turbo"
+        if not model:
+            raise RuntimeError("Model name must be specified")
         LOGGER.info("Calling OpenAI model %s", model)
         LOGGER.debug("Messages: %s", messages)
         try:  # pragma: no cover - network dependent
