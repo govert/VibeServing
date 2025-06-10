@@ -35,7 +35,9 @@ class Handler(BaseHTTPRequestHandler):
             raise RuntimeError("OPENAI_API_KEY environment variable not set")
 
         openai.api_key = api_key
-        model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+        model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo") or "gpt-3.5-turbo"
+        if not model:
+            raise RuntimeError("Model name must be specified")
         prompt = f"Echo the following HTTP path and query exactly:\n{path}"
 
         try:
